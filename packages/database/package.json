@@ -1,0 +1,13 @@
+{
+  "name": "@gumax/database",
+  "private": true,
+  "version": "2.0.0",
+  "scripts": {
+    "generate": "prisma generate",
+    "validate": "prisma validate",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": { "@prisma/client": "6.2.1" },
+  "devDependencies": { "prisma": "6.2.1", "typescript": "5.7.3" }
+}
+

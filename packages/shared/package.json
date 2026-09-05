@@ -1,0 +1,9 @@
+{
+  "name": "@gumax/shared",
+  "private": true,
+  "version": "2.0.0",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "typecheck": "tsc --noEmit" },
+  "devDependencies": { "typescript": "5.7.3" }
+}
+
