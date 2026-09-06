@@ -1,4 +1,5 @@
 import { PrismaClient, Prisma } from "@prisma/client";
+export { PrismaWalletRepository, type WalletPrismaClient, type WalletPrismaDelegate, type WalletPrismaWallet, type WalletPrismaWalletUpdate } from "./wallet-repository.ts";
 export { PrismaClient, Prisma };
 let client: PrismaClient | undefined;
 export const getPrisma = (): PrismaClient => (client ??= new PrismaClient());
