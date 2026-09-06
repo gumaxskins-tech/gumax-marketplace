@@ -5,14 +5,18 @@
   "packageManager": "npm@10.9.2",
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {
+    "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
     "test": "npm run test --workspaces --if-present",
     "typecheck": "npm run typecheck --workspaces --if-present",
-    "db:generate": "npm --workspace @gumax/database run generate",
-    "db:validate": "npm --workspace @gumax/database run validate"
+    "lint": "npm run typecheck",
+    "prisma:format": "npm --workspace @gumax/database exec prisma format",
+    "prisma:validate": "npm --workspace @gumax/database exec prisma validate",
+    "prisma:generate": "npm --workspace @gumax/database exec prisma generate",
+    "db:generate": "npm run prisma:generate",
+    "db:validate": "npm run prisma:validate"
   },
   "devDependencies": {
     "typescript": "5.7.3"
   }
 }
-
