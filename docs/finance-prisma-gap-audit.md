@@ -24,7 +24,7 @@ The current schema has 15 directly relevant models: `Wallet`, `LedgerEntry`, `Wa
 | `PaymentEventDedupStore` | `has`, `record` / boolean | `PaymentEvent` or `IdempotencyRecord` | `PaymentEvent.providerEventId` global unique; `IdempotencyRecord` scoped unique | `PaymentEvent` requires `paymentId` and payload that the narrow port does not receive; provider-aware uniqueness requires a provider dimension if global event IDs are not contractual | Unique insert/claim in verified-webhook transaction. **PARTIAL** |
 | `RefundIdempotencyStore` | `get`, `set` / `Refund` | `IdempotencyRecord`, `Refund` | Same scoped uniqueness foundation | Fixed `REFUND` scope/result mapping; Refund enum mismatch blocks typed result persistence | Claim/complete with refund validation and insert. **PARTIAL** |
 
-Classification after P0 decisions: **2 IMPLEMENTED_NOT_INTEGRATION_TESTED, 9 PARTIAL, 0 MISSING, 2 DESIGN_DECISION_REQUIRED**. `AuditLog` is outside the 13 ports and is a separate gap. The remaining design decisions are `OrderRepository` (`OperationType`) and `InventoryReservationRepository` (owner/order/expiry lifecycle).
+Classification after P0 decisions: **2 IMPLEMENTED_NOT_INTEGRATION_TESTED, 9 PARTIAL, 0 MISSING, 2 DESIGN_DECISION_REQUIRED**. `AuditLog` is outside the 13 ports and is a separate gap. The remaining design decisions are `OrderRepository` (`OperationType`) and `InventoryReservationRepository` (owner/order/expiry lifecycle). The approved Ledger claim/complete design is recorded in [ledger-idempotency-persistence-design.md](ledger-idempotency-persistence-design.md).
 
 ## 3. Current Prisma model mapping and money audit
 
