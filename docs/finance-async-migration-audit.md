@@ -4,6 +4,8 @@
 
 This is a read-only architecture audit at commit `05e753781ab9e245fa4d1263877646f633ce0be6`. `FinanceService` has no internal `Map` or `Set` for its six idempotency/deduplication mechanisms or its main wallet, ledger, hold, order, payment, refund, and inventory-reservation state. All 13 ports are currently synchronous and are implemented only by explicit in-memory adapters. They are not PostgreSQL persistence.
 
+**Progress note (P0-A1.1d-2):** the six idempotency/deduplication ports and their in-memory adapters have since been converted to async, and FinanceService awaits their affected call sites. The seven main repositories remain synchronous. The signature tables and propagation counts below describe the audited pre-conversion baseline.
+
 `FinanceService` retains `audit: string[]`, which is an in-memory audit trail and is not represented by a repository port. It is therefore outside the extracted-state claim and must be replaced by an audit port before a production finance workflow is considered persistent.
 
 ## 1. Current ports inventory
