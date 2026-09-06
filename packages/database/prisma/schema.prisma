@@ -463,3 +463,46 @@ model AuditLog {
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
 }
+
+enum IdempotencyStatus { PENDING COMPLETED FAILED }
+enum CommercialOperationType { BUY SELL UPGRADE DOWNGRADE }
+enum CommercialOperationStatus { CREATED REVIEW BLOCKED RESERVED TRADE_PENDING COMPLETED CANCELLED }
+enum SettlementStatus { PENDING READY COMPLETED FAILED UNDER_REVIEW }
+
+model IdempotencyRecord {
+  id String @id @default(uuid())
+  scope String
+  key String
+  entityId String?
+  status IdempotencyStatus @default(PENDING)
+  metadata Json?
+  createdAt DateTime @default(now())
+  expiresAt DateTime?
+  @@unique([scope, key])
+  @@index([createdAt])
+}
+
+model CommercialOperation {
+  id String @id @default(uuid())
+  userId String
+  type CommercialOperationType
+  status CommercialOperationStatus @default(CREATED)
+  pricingSnapshotId String
+  riskAssessmentId String?
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, status])
+  @@index([pricingSnapshotId])
+}
+
+model Settlement {
+  id String @id @default(uuid())
+  userId String
+  operationId String @unique
+  status SettlementStatus @default(PENDING)
+  idempotencyKey String @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([userId, status])
+}
