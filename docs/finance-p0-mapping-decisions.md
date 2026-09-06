@@ -2,9 +2,9 @@
 
 ## 1. Executive decision
 
-This document approves the mappings that can be derived without changing finance behavior. `Hold` is **SCHEMA_CHANGE_PREPARED**: its approved enum and read-index migration artifacts exist, but its adapter and PostgreSQL validation remain pending. `Refund` is **APPROVED_WITH_SCHEMA_CHANGE**. `Order` and `InventoryReservation` are **BLOCKED_BY_DOMAIN_DECISION** because required semantics are absent from the current FinanceService domain and cannot be safely guessed.
+This document approves the mappings that can be derived without changing finance behavior. `Hold` is **ADAPTER_IMPLEMENTED_NOT_INTEGRATION_TESTED**: its approved enum/read-index prerequisites and transaction-client-compatible Prisma adapter exist, but PostgreSQL migration execution and integration validation remain pending. `Refund` is **APPROVED_WITH_SCHEMA_CHANGE**. `Order` and `InventoryReservation` are **BLOCKED_BY_DOMAIN_DECISION** because required semantics are absent from the current FinanceService domain and cannot be safely guessed.
 
-No runtime code, Prisma schema, adapter, or migration is changed by these decisions. P0-A1 remains incomplete until durable PostgreSQL adapters, transactions, constraints, and migrations exist.
+The mapping decisions themselves did not alter finance behavior. P0-A1 remains incomplete until PostgreSQL migrations are executed and validated, transaction-scoped composition is integrated, and the remaining durable adapters and constraints exist.
 
 ## 2. Order mapping
 
@@ -56,7 +56,7 @@ The approved representation is item-level `OrderItemSource`: `INVENTORY` maps to
 
 Add `@@index([walletId, status])` for `listActiveByWallet(walletId)`. The capture boundary must mutate `WalletHold.status`, append `LedgerEntry`, and complete ledger idempotency using the same transaction client. `CONSUMED` and `EXPIRED` are unsupported reads for the current adapter and must be rejected or handled only after a future domain decision.
 
-**Status: SCHEMA_CHANGE_PREPARED.** `CAPTURED` is added to `ReservationStatus` and `@@index([walletId, status])` is prepared by the focused Hold migration. The migration is additive: existing hold rows retain their current lifecycle value and require no backfill. `PrismaHoldRepository`, PostgreSQL migration execution, and integration validation remain pending.
+**Status: ADAPTER_IMPLEMENTED_NOT_INTEGRATION_TESTED.** `CAPTURED` is added to `ReservationStatus` and `@@index([walletId, status])` is prepared by the focused Hold migration. The migration is additive: existing hold rows retain their current lifecycle value and require no backfill. `PrismaHoldRepository` is implemented with a transaction-client-compatible structural delegate; PostgreSQL migration execution and integration validation remain pending.
 
 ## 4. Refund mapping
 
