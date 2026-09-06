@@ -2,7 +2,7 @@
 
 ## 1. Executive decision
 
-This document approves the mappings that can be derived without changing finance behavior. `Hold` and `Refund` are **APPROVED_WITH_SCHEMA_CHANGE**. `Order` and `InventoryReservation` are **BLOCKED_BY_DOMAIN_DECISION** because required semantics are absent from the current FinanceService domain and cannot be safely guessed.
+This document approves the mappings that can be derived without changing finance behavior. `Hold` is **SCHEMA_CHANGE_PREPARED**: its approved enum and read-index migration artifacts exist, but its adapter and PostgreSQL validation remain pending. `Refund` is **APPROVED_WITH_SCHEMA_CHANGE**. `Order` and `InventoryReservation` are **BLOCKED_BY_DOMAIN_DECISION** because required semantics are absent from the current FinanceService domain and cannot be safely guessed.
 
 No runtime code, Prisma schema, adapter, or migration is changed by these decisions. P0-A1 remains incomplete until durable PostgreSQL adapters, transactions, constraints, and migrations exist.
 
@@ -56,7 +56,7 @@ The approved representation is item-level `OrderItemSource`: `INVENTORY` maps to
 
 Add `@@index([walletId, status])` for `listActiveByWallet(walletId)`. The capture boundary must mutate `WalletHold.status`, append `LedgerEntry`, and complete ledger idempotency using the same transaction client. `CONSUMED` and `EXPIRED` are unsupported reads for the current adapter and must be rejected or handled only after a future domain decision.
 
-**Status: APPROVED_WITH_SCHEMA_CHANGE.** Required schema changes: add `CAPTURED` to `ReservationStatus` and add the composite active-hold read index.
+**Status: SCHEMA_CHANGE_PREPARED.** `CAPTURED` is added to `ReservationStatus` and `@@index([walletId, status])` is prepared by the focused Hold migration. The migration is additive: existing hold rows retain their current lifecycle value and require no backfill. `PrismaHoldRepository`, PostgreSQL migration execution, and integration validation remain pending.
 
 ## 4. Refund mapping
 
@@ -129,7 +129,7 @@ All P0 amount fields map to existing or approved `Decimal(20,8)` columns and exp
 | Wallet has no authoritative mutable balance | yes | model has no balance field | BOTH |
 | Ledger entry is append-only | yes | no adapter/update API yet | PENDING |
 | Hold belongs to a Wallet | yes | existing FK | BOTH |
-| Active holds are found by wallet | yes | composite index pending | PENDING |
+| Active holds are found by wallet | yes | composite index prepared | SCHEMA_CHANGE_PREPARED |
 | Refund belongs to a Payment | yes | existing FK | BOTH |
 | Refund amount preserves Decimal/currency | yes | existing decimal/currency columns | BOTH |
 | Inventory item has at most one active reservation | yes in shared memory | partial unique index + transaction lock pending | PENDING |
@@ -138,7 +138,7 @@ All P0 amount fields map to existing or approved `Decimal(20,8)` columns and exp
 
 ## 10. Required indexes and constraints
 
-1. Add `ReservationStatus.CAPTURED`.
+1. `ReservationStatus.CAPTURED` and `@@index([walletId, status])` are prepared by the Hold migration.
 2. Add `RefundStatus.COMPLETED` and change `Refund.status` to that enum.
 3. Add `@@index([walletId, status])` to `WalletHold`.
 4. Add `@@index([paymentId])` to `Refund`.
