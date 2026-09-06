@@ -100,7 +100,7 @@ const toPrismaEntry = (entry: LedgerDomainEntry): LedgerPrismaCreate => ({
   createdAt: entry.createdAt,
 });
 
-const toDomainEntry = (entry: LedgerPrismaEntry): LedgerDomainEntry => ({
+export const toDomainLedgerEntry = (entry: LedgerPrismaEntry): LedgerDomainEntry => ({
   id: entry.id,
   walletId: entry.walletId,
   type: toLedgerType(entry.type),
@@ -130,11 +130,11 @@ export class PrismaLedgerRepository {
       where: { walletId },
       orderBy: chronologicalOrder,
     });
-    return entries.map(toDomainEntry);
+    return entries.map(toDomainLedgerEntry);
   }
 
   async listAll(): Promise<readonly LedgerDomainEntry[]> {
     const entries = await this.prisma.ledgerEntry.findMany({ orderBy: chronologicalOrder });
-    return entries.map(toDomainEntry);
+    return entries.map(toDomainLedgerEntry);
   }
 }

@@ -4,7 +4,7 @@
 
 **Approved design:** retain the generic `IdempotencyRecord(scope, key)` uniqueness, use the canonical fixed scope `LEDGER`, and add a nullable-during-transaction, typed `ledgerEntryId` foreign key to `LedgerEntry`. A PostgreSQL transaction claims the `(LEDGER, key)` record before appending the ledger row, then completes that same record with the immutable ledger result before commit.
 
-This is the Ledger pilot for a future scoped idempotency foundation. **SCHEMA/MIGRATION PREPARED** and **RUNTIME CONTRACT MIGRATED TO CLAIM/COMPLETE:** the approved schema delta and raw SQL lifecycle triggers are present, and the domain Ledger port plus in-memory adapter now use claim/complete. The Prisma adapter and transaction manager are still pending.
+This is the Ledger pilot for a future scoped idempotency foundation. **SCHEMA/MIGRATION PREPARED**, **RUNTIME CONTRACT MIGRATED TO CLAIM/COMPLETE**, and **PRISMA ADAPTER IMPLEMENTED:** the approved schema delta and raw SQL lifecycle triggers are present; the domain Ledger port plus in-memory adapter use claim/complete; and `PrismaLedgerIdempotencyStore` uses the same protocol with a transaction-client-compatible delegate surface. PostgreSQL concurrency is not yet integration-tested, and the transaction manager is still pending.
 
 ## 2. Current blocker and schema facts
 
@@ -60,7 +60,7 @@ interface LedgerIdempotencyStore {
 
 ## 5. PostgreSQL concurrency and lifecycle
 
-`claim()` uses `IdempotencyRecord.createMany({ skipDuplicates: true })` with `scope = 'LEDGER'`, `status = PENDING`, and no result reference. PostgreSQL implements the duplicate suppression through its real `(scope, key)` unique index without a unique-violation exception that would abort the transaction.
+`claim()` uses `IdempotencyRecord.createMany({ skipDuplicates: true })` with a pre-generated record id, `scope = 'LEDGER'`, `status = PENDING`, and no result reference. The pre-generated id is returned as the durable `claimId` without a redundant read. PostgreSQL implements the duplicate suppression through its real `(scope, key)` unique index without a unique-violation exception that would abort the transaction.
 
 - `count = 1`: this transaction owns the claim and returns `CLAIMED`.
 - `count = 0`: it reads the same `(scope, key)` record. After a normal competing transaction commits, it is `COMPLETED` and the adapter loads the referenced LedgerEntry. If a malformed committed pending row exists, it returns `IN_PROGRESS` and performs no append.
@@ -137,4 +137,4 @@ PostgreSQL integration tests (6): two concurrent same-key operations; exactly on
 
 ## 12. Exact next micro-step
 
-P0-A1.3g: alter `schema.prisma` and prepare the first P0 migration for `IdempotencyRecord.ledgerEntryId`, its LedgerEntry relation, and the deferred Ledger lifecycle triggers described above.
+P0-A1.3j: implement `PrismaFinanceTransactionManager` so the Ledger repository and idempotency store are built from one `Prisma.TransactionClient`; execute the prepared migration and add PostgreSQL concurrency integration tests in their dedicated validation step.
