@@ -264,6 +264,7 @@ model LedgerEntry {
   metadata Json?
   createdAt DateTime @default(now())
   wallet Wallet @relation(fields: [walletId], references: [id])
+  ledgerIdempotencyResults IdempotencyRecord[] @relation("LedgerIdempotencyResult")
   @@index([walletId, createdAt])
 }
 model WalletHold {
@@ -474,6 +475,8 @@ model IdempotencyRecord {
   scope String
   key String
   entityId String?
+  ledgerEntryId String? @unique
+  ledgerEntry LedgerEntry? @relation("LedgerIdempotencyResult", fields: [ledgerEntryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   status IdempotencyStatus @default(PENDING)
   metadata Json?
   createdAt DateTime @default(now())

@@ -4,7 +4,7 @@
 
 **Approved design:** retain the generic `IdempotencyRecord(scope, key)` uniqueness, use the canonical fixed scope `LEDGER`, and add a nullable-during-transaction, typed `ledgerEntryId` foreign key to `LedgerEntry`. A PostgreSQL transaction claims the `(LEDGER, key)` record before appending the ledger row, then completes that same record with the immutable ledger result before commit.
 
-This is the Ledger pilot for a future scoped idempotency foundation. It does not change any current runtime port or schema in this decision-only step.
+This is the Ledger pilot for a future scoped idempotency foundation. **SCHEMA/MIGRATION PREPARED:** the approved schema delta and raw SQL lifecycle triggers are now present; no runtime port, adapter, or transaction manager is implemented yet.
 
 ## 2. Current blocker and schema facts
 
@@ -76,7 +76,7 @@ The future migration changes only the generic record as needed for this pilot:
 ```text
 IdempotencyRecord
   + ledgerEntryId String? @unique
-  + ledgerEntry LedgerEntry? @relation("LedgerIdempotencyResult", fields: [ledgerEntryId], references: [id], onDelete: Restrict)
+  + ledgerEntry LedgerEntry? @relation("LedgerIdempotencyResult", fields: [ledgerEntryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
 
 LedgerEntry
   + ledgerIdempotencyResults IdempotencyRecord[] @relation("LedgerIdempotencyResult")
@@ -88,7 +88,7 @@ A raw SQL migration is required for deferred constraint triggers because Prisma 
 
 1. reject commit unless status is `COMPLETED`, `ledgerEntryId` is non-null, and `entityId` is null;
 2. require the referenced `LedgerEntry.idempotencyKey` to equal `IdempotencyRecord.key`;
-3. prohibit every mutation that changes a completed Ledger record or its result reference.
+3. prohibit deletion of Ledger claims and every mutation that changes a completed Ledger record or its result reference.
 
 A plain CHECK constraint is not sufficient because it cannot inspect `LedgerEntry` or defer the `PENDING` validation until transaction commit. No partial unique index is needed: the existing unique `(scope, key)` is the claim key. Prisma schema can express the field, relation, and unique constraint; `Prisma.TransactionClient` is sufficient for the runtime operations. The raw SQL triggers are the only migration feature Prisma cannot model.
 
