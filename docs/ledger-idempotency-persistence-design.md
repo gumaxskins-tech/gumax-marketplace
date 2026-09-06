@@ -4,7 +4,7 @@
 
 **Approved design:** retain the generic `IdempotencyRecord(scope, key)` uniqueness, use the canonical fixed scope `LEDGER`, and add a nullable-during-transaction, typed `ledgerEntryId` foreign key to `LedgerEntry`. A PostgreSQL transaction claims the `(LEDGER, key)` record before appending the ledger row, then completes that same record with the immutable ledger result before commit.
 
-This is the Ledger pilot for a future scoped idempotency foundation. **SCHEMA/MIGRATION PREPARED:** the approved schema delta and raw SQL lifecycle triggers are now present; no runtime port, adapter, or transaction manager is implemented yet.
+This is the Ledger pilot for a future scoped idempotency foundation. **SCHEMA/MIGRATION PREPARED** and **RUNTIME CONTRACT MIGRATED TO CLAIM/COMPLETE:** the approved schema delta and raw SQL lifecycle triggers are present, and the domain Ledger port plus in-memory adapter now use claim/complete. The Prisma adapter and transaction manager are still pending.
 
 ## 2. Current blocker and schema facts
 
