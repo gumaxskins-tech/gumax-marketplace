@@ -2,7 +2,7 @@
 
 ## 1. Executive status
 
-Audited at commit `aaf2263c635a60da23c1fff3ee7f2e209d50a20a`. All 13 finance ports are asynchronous and the in-memory composition boundaries cover capture, inventory orders, verified webhooks, and refunds. They are not durable or rollback-safe. No Prisma adapter, Prisma finance transaction manager, schema change, or migration is implemented by this audit.
+Audited at commit `aaf2263c635a60da23c1fff3ee7f2e209d50a20a`. All 13 finance ports are asynchronous and the in-memory composition boundaries cover capture, inventory orders, verified webhooks, and refunds. They are not durable or rollback-safe. No Prisma adapter, Prisma finance transaction manager, schema change, or migration is implemented by this audit. P0 mapping decisions are recorded in [finance-p0-mapping-decisions.md](finance-p0-mapping-decisions.md).
 
 The current schema has 15 directly relevant models: `Wallet`, `LedgerEntry`, `WalletHold`, `Order`, `OrderItem`, `PricingSnapshot`, `Purchase`, `Sale`, `Payment`, `PaymentEvent`, `Refund`, `InventoryItem`, `InventoryReservation`, `IdempotencyRecord`, and `AuditLog`. It contains useful foundations but no port is safe to implement as production persistence without the gaps below being resolved.
 
@@ -15,7 +15,7 @@ The current schema has 15 directly relevant models: `Wallet`, `LedgerEntry`, `Wa
 | `HoldRepository` | `getById`, `save`, `listActiveByWallet`, `count` / `Hold` | `WalletHold` | Wallet FK; amount/currency; timestamps; idempotency key | `ReservationStatus` has `CONSUMED`, not domain `CAPTURED`; no `@@index([walletId, status])`; no update timestamp / captured timestamp | Hold update and ledger append require one transaction. **PARTIAL** |
 | `OrderRepository` | `getById`, `save` / immutable `Order` | `Order`, `OrderItem`, `PricingSnapshot`, `Purchase`, `Sale` | Order/user/pricing snapshot relations; currency; persisted total and exchange rate; item inventory FK | Domain order lacks required `operationType` and `total`; domain item fees, discount, final price, item snapshot, and `source` have no lossless columns; inventory/encomenda mapping between `OrderItem`, `Purchase`, and `Sale` is not defined; `Sale.inventoryItemId` is not an `InventoryItem` relation | Save must share a transaction with reservation and order idempotency. **DESIGN_DECISION_REQUIRED** |
 | `PaymentRepository` | `getById`, `save` / `Payment` | `Payment` | Order FK; provider/reference unique pair; amount/currency/status; timestamps; idempotency key | Explicit converter needed for `providerPaymentId` ↔ `providerReference`; no separate provider intent data beyond reference | Payment and order transition must share webhook transaction. **PARTIAL** |
-| `RefundRepository` | `getById`, `save`, `listByPayment`, `count` / `Refund` | `Refund`, `Payment` | Payment FK; amount/currency; idempotency key; timestamp | Domain `COMPLETED` cannot map to Prisma `PaymentStatus`; no `@@index([paymentId])`; future settlement is intentionally absent | Payment/refund aggregate validation and insert require one transaction/lock. **DESIGN_DECISION_REQUIRED** |
+| `RefundRepository` | `getById`, `save`, `listByPayment`, `count` / `Refund` | `Refund`, `Payment` | Payment FK; amount/currency; idempotency key; timestamp | Approved mapping requires a dedicated `RefundStatus.COMPLETED` and `@@index([paymentId])`; future settlement is intentionally absent | Payment/refund aggregate validation and insert require one transaction/lock. **PARTIAL** |
 | `InventoryReservationRepository` | `getByItemId`, `reserve`, `release` / `InventoryReservation` | `InventoryReservation`, `InventoryItem`, `Order`/`Sale` | Inventory FK; `orderId` scalar; lifecycle enum; status index | Domain has only `itemId`; schema requires `expiresAt`; no ownership/release policy mapping; no one-active-reservation uniqueness; `orderId` has no `Order` relation or FK | Must atomically claim item with Order persistence. **DESIGN_DECISION_REQUIRED** |
 | `LedgerIdempotencyStore` | `get`, `set` / `LedgerEntry` | `IdempotencyRecord`, `LedgerEntry` | `@@unique([scope, key])`, status, optional entity ID | Entity ID is nullable and has no enforced entity type; adapter must use fixed `LEDGER` scope and retrieve typed entry atomically | Claim/complete inside ledger transaction. **PARTIAL** |
 | `HoldIdempotencyStore` | `get`, `set` / `Hold` | `IdempotencyRecord`, `WalletHold` | Same scoped uniqueness foundation | Fixed `HOLD` scope and typed result mapping are not represented/enforced; hold enum mismatch remains | Claim/complete with hold write. **PARTIAL** |
@@ -24,7 +24,7 @@ The current schema has 15 directly relevant models: `Wallet`, `LedgerEntry`, `Wa
 | `PaymentEventDedupStore` | `has`, `record` / boolean | `PaymentEvent` or `IdempotencyRecord` | `PaymentEvent.providerEventId` global unique; `IdempotencyRecord` scoped unique | `PaymentEvent` requires `paymentId` and payload that the narrow port does not receive; provider-aware uniqueness requires a provider dimension if global event IDs are not contractual | Unique insert/claim in verified-webhook transaction. **PARTIAL** |
 | `RefundIdempotencyStore` | `get`, `set` / `Refund` | `IdempotencyRecord`, `Refund` | Same scoped uniqueness foundation | Fixed `REFUND` scope/result mapping; Refund enum mismatch blocks typed result persistence | Claim/complete with refund validation and insert. **PARTIAL** |
 
-Classification total: **1 READY, 9 PARTIAL, 0 MISSING, 3 DESIGN_DECISION_REQUIRED**. `AuditLog` is outside the 13 ports and is a separate gap.
+Classification after P0 decisions: **1 READY, 10 PARTIAL, 0 MISSING, 2 DESIGN_DECISION_REQUIRED**. `AuditLog` is outside the 13 ports and is a separate gap. The remaining design decisions are `OrderRepository` (`OperationType`) and `InventoryReservationRepository` (owner/order/expiry lifecycle).
 
 ## 3. Current Prisma model mapping and money audit
 
@@ -126,4 +126,4 @@ The future manager should call the existing database infrastructure with one tra
 
 ## 12. Exact next micro-step
 
-Approve the P0 schema/domain mapping decisions for `Order`/`OrderItem`, `WalletHold.CAPTURED`, `Refund.COMPLETED`, and inventory-reservation lifecycle before writing any Prisma adapter or migration.
+The mapping decisions are now recorded in [finance-p0-mapping-decisions.md](finance-p0-mapping-decisions.md). Implement `PrismaWalletRepository` using the existing Wallet model and a transaction-scoped client; Wallet is the only READY port and has no prerequisite schema change.
