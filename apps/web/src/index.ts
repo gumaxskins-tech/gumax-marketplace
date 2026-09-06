@@ -1,2 +1,3 @@
-/** Public marketplace application boundary. UI is introduced in Stage 8. */
-export {};
+/** Read-only customer contracts: authoritative price/status always comes from API. */
+export type ListingSource="INVENTORY"|"ORDER";export interface Listing{id:string;name:string;imageUrl?:string;price:string;currency:"BRL";source:ListingSource;available:boolean;updatedAt:string;liquidity?:number}export interface CartItem{listingId:string;source:ListingSource;quantity:number}export type CustomerError="PRICE_EXPIRED"|"UNAVAILABLE"|"PAYMENT_FAILED"|"RISK_BLOCKED"|"KYC_REQUIRED"|"LIMIT_EXCEEDED";
+export class MarketplaceView{private cart:CartItem[]=[];add(item:CartItem){if(item.quantity!==1)throw Error("Quantity is server validated");this.cart.push(Object.freeze({...item}))}getCart(){return [...this.cart]}checkoutPayload(){return {items:this.getCart().map(i=>({listingId:i.listingId,source:i.source}))}}}
