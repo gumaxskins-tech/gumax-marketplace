@@ -1,3 +1,5 @@
 # Finance persistence
 
-Ledger idempotency is now behind `LedgerIdempotencyStore`, with an explicit in-memory adapter for tests. Prisma persistence remains pending. Holds, orders, payments, refunds, webhook deduplication and reservations remain internal stores until later P0-A1 micro-steps.
+Completed: ledger idempotency extraction and hold idempotency extraction, each behind an explicit in-memory adapter for tests.
+
+Pending: order, payment, webhook and refund idempotency; the remaining financial state; and Prisma persistence. P0-A1 is not complete.
