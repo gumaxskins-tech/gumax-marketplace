@@ -4,6 +4,7 @@ export { PrismaLedgerRepository, toDomainLedgerEntry, type LedgerDomainEntry, ty
 export { PrismaLedgerIdempotencyStore, type LedgerIdempotencyClaim, type LedgerIdempotencyPrismaClient, type LedgerIdempotencyPrismaDelegate, type LedgerIdempotencyPrismaRecord } from "./ledger-idempotency-store.ts";
 export { PrismaHoldRepository, toDomainHold, type HoldDomain, type HoldPrismaClient, type HoldPrismaCreate, type HoldPrismaDelegate, type HoldPrismaRow, type HoldPrismaUpdate, type HoldStatus } from "./hold-repository.ts";
 export { createPrismaCaptureTransactionResources, type PrismaCaptureTransactionClient, type PrismaCaptureTransactionResources } from "./capture-transaction-resources.ts";
+export { PrismaCaptureTransactionManager, type PrismaCaptureTransactionRunner } from "./capture-transaction-manager.ts";
 export { PrismaClient, Prisma };
 let client: PrismaClient | undefined;
 export const getPrisma = (): PrismaClient => (client ??= new PrismaClient());
