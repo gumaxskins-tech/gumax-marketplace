@@ -26,6 +26,8 @@ The current schema has 15 directly relevant models: `Wallet`, `LedgerEntry`, `Wa
 
 Classification after P0 decisions: **3 IMPLEMENTED_NOT_POSTGRES_INTEGRATION_TESTED, 8 PARTIAL, 0 MISSING, 2 DESIGN_DECISION_REQUIRED**. `AuditLog` is outside the 13 ports and is a separate gap. The remaining design decisions are `OrderRepository` (`OperationType`) and `InventoryReservationRepository` (owner/order/expiry lifecycle). The approved Ledger claim/complete design is recorded in [ledger-idempotency-persistence-design.md](ledger-idempotency-persistence-design.md).
 
+P0-A1.3o could not advance this classification on 2026-09-07: the workspace had no designated disposable PostgreSQL URL, PostgreSQL/Docker tooling, local Prisma CLI, or generated `@prisma/client`. The migration chain and `PrismaCaptureTransactionManager` therefore remain **IMPLEMENTED_NOT_POSTGRES_INTEGRATION_TESTED**; no database connection or migration execution was attempted.
+
 ## 3. Current Prisma model mapping and money audit
 
 `LedgerEntry`, `WalletHold`, `Order.total`, `OrderItem.unitPrice`, `Payment`, `Refund`, `InventoryItem`, `PricingSnapshot`, and pricing market fields use `@db.Decimal(20, 8)`. Currency is stored using `Currency`. This supports Decimal/numeric storage and avoids a required JavaScript-float conversion, provided adapters convert the pricing `Decimal` value without `Number`.
