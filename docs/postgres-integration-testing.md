@@ -6,11 +6,11 @@ Financial PostgreSQL integration tests use only `GUMAX_TEST_DATABASE_URL`. They 
 
 ## Current toolchain status
 
-The repository is an npm workspaces monorepo (`npm@10.9.2`). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07 this workspace had no committed lockfile, npm executable, installed `node_modules`, local Prisma CLI, generated client, PostgreSQL runtime, Docker, or designated test URL. Consequently this document defines the reproducible contract but does not claim a validated PostgreSQL environment.
+The repository is an npm workspaces monorepo (`npm@10.9.2` is declared in the root manifest). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07 this workspace had no committed lockfile, npm executable (including the standard Windows installation paths), installed `node_modules`, local Prisma CLI, generated client, PostgreSQL runtime, Docker, or designated test URL. Consequently this document defines the reproducible contract but does not claim a validated PostgreSQL environment. The available `pnpm` fallback must not be used: it would change the package-manager/lockfile contract.
 
 ## Prerequisites
 
-1. Use npm `10.9.2` and restore or commit the repository's lockfile before installation. The missing lockfile currently prevents a lockfile-safe `npm ci` installation.
+1. Install a supported Node.js distribution that includes npm `10.9.2` (or otherwise restore that exact npm executable), then restore or commit the repository's lockfile before installation. The missing executable and lockfile currently prevent a lockfile-safe `npm ci` installation.
 2. Start a disposable PostgreSQL service. Docker is the preferred future local/CI strategy; a dedicated local PostgreSQL instance is acceptable. Do not use an external database unless it is explicitly provisioned only for these tests.
 3. Set `GUMAX_TEST_DATABASE_URL` to that disposable database URL. Keep it out of source control.
 
