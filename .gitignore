@@ -1,4 +1,5 @@
 node_modules/
+.npm-cache/
 .env
 .env.*
 !.env.example
@@ -6,4 +7,3 @@ dist/
 coverage/
 .turbo/
 *.log
-

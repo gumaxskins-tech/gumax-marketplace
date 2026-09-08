@@ -7,506 +7,735 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum Currency { BRL CNY USD }
-enum UserRole { USER SUPPORT OPERATOR FINANCE RISK ADMIN SUPER_ADMIN }
-enum UserStatus { ACTIVE RESTRICTED SUSPENDED BANNED UNDER_REVIEW }
-enum KycStatus { PENDING APPROVED REJECTED EXPIRED UNDER_REVIEW }
-enum InventoryStatus { AVAILABLE RESERVED SOLD INCOMING TRADE_PROTECTED QUARANTINED WITHDRAWN BLOCKED }
-enum InventoryOrigin { USER_PURCHASE SUPPLIER_ORDER TRADE_IN ADMIN_IMPORT }
-enum ReservationStatus { ACTIVE RELEASED CAPTURED CONSUMED EXPIRED }
-enum OrderStatus { PAYMENT_PENDING PAYMENT_CONFIRMED ORDER_AUTHORIZED SUPPLIER_ORDER_PENDING SUPPLIER_ORDERED ASSET_RECEIVED DELIVERY_PENDING COMPLETED CANCELLED REFUND_PENDING REFUNDED DISPUTED }
-enum OperationType { PURCHASE SALE UPGRADE DOWNGRADE }
-enum PaymentStatus { PENDING AUTHORIZED PAID FAILED CANCELLED REFUNDED EXPIRED UNDER_REVIEW }
-enum LedgerEntryType { CREDIT DEBIT HOLD RELEASE REFUND FEE PURCHASE SALE UPGRADE DOWNGRADE WITHDRAWAL ADJUSTMENT }
-enum TradeStatus { CREATED OFFERED ACCEPTED RECEIVED PROTECTED RELEASED CANCELLED REVERSED FAILED UNDER_REVIEW }
-enum ProtectionStatus { PENDING ACTIVE RELEASED BLOCKED }
-enum RiskEventType { PAYMENT_FAILED CHARGEBACK TRADE_REVERSED MULTIPLE_CANCELLATIONS KYC_REJECTED SUSPICIOUS_ACTIVITY }
-enum RiskDecision { ALLOW REVIEW BLOCK }
-enum SupportStatus { OPEN IN_PROGRESS WAITING_USER WAITING_ADMIN RESOLVED CLOSED }
-enum SupportCategory { PAYMENT TRADE KYC ACCOUNT PURCHASE SALE UPGRADE DOWNGRADE BAN_APPEAL OTHER }
-enum ConfigScope { GLOBAL PRICING RISK KYC PAYMENT TRADE }
+enum Currency {
+  BRL
+  CNY
+  USD
+}
+
+enum UserRole {
+  USER
+  SUPPORT
+  OPERATOR
+  FINANCE
+  RISK
+  ADMIN
+  SUPER_ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  RESTRICTED
+  SUSPENDED
+  BANNED
+  UNDER_REVIEW
+}
+
+enum KycStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  EXPIRED
+  UNDER_REVIEW
+}
+
+enum InventoryStatus {
+  AVAILABLE
+  RESERVED
+  SOLD
+  INCOMING
+  TRADE_PROTECTED
+  QUARANTINED
+  WITHDRAWN
+  BLOCKED
+}
+
+enum InventoryOrigin {
+  USER_PURCHASE
+  SUPPLIER_ORDER
+  TRADE_IN
+  ADMIN_IMPORT
+}
+
+enum ReservationStatus {
+  ACTIVE
+  RELEASED
+  CAPTURED
+  CONSUMED
+  EXPIRED
+}
+
+enum OrderStatus {
+  PAYMENT_PENDING
+  PAYMENT_CONFIRMED
+  ORDER_AUTHORIZED
+  SUPPLIER_ORDER_PENDING
+  SUPPLIER_ORDERED
+  ASSET_RECEIVED
+  DELIVERY_PENDING
+  COMPLETED
+  CANCELLED
+  REFUND_PENDING
+  REFUNDED
+  DISPUTED
+}
+
+enum OperationType {
+  PURCHASE
+  SALE
+  UPGRADE
+  DOWNGRADE
+}
+
+enum PaymentStatus {
+  PENDING
+  AUTHORIZED
+  PAID
+  FAILED
+  CANCELLED
+  REFUNDED
+  EXPIRED
+  UNDER_REVIEW
+}
+
+enum LedgerEntryType {
+  CREDIT
+  DEBIT
+  HOLD
+  RELEASE
+  REFUND
+  FEE
+  PURCHASE
+  SALE
+  UPGRADE
+  DOWNGRADE
+  WITHDRAWAL
+  ADJUSTMENT
+}
+
+enum TradeStatus {
+  CREATED
+  OFFERED
+  ACCEPTED
+  RECEIVED
+  PROTECTED
+  RELEASED
+  CANCELLED
+  REVERSED
+  FAILED
+  UNDER_REVIEW
+}
+
+enum ProtectionStatus {
+  PENDING
+  ACTIVE
+  RELEASED
+  BLOCKED
+}
+
+enum RiskEventType {
+  PAYMENT_FAILED
+  CHARGEBACK
+  TRADE_REVERSED
+  MULTIPLE_CANCELLATIONS
+  KYC_REJECTED
+  SUSPICIOUS_ACTIVITY
+}
+
+enum RiskDecision {
+  ALLOW
+  REVIEW
+  BLOCK
+}
+
+enum SupportStatus {
+  OPEN
+  IN_PROGRESS
+  WAITING_USER
+  WAITING_ADMIN
+  RESOLVED
+  CLOSED
+}
+
+enum SupportCategory {
+  PAYMENT
+  TRADE
+  KYC
+  ACCOUNT
+  PURCHASE
+  SALE
+  UPGRADE
+  DOWNGRADE
+  BAN_APPEAL
+  OTHER
+}
+
+enum ConfigScope {
+  GLOBAL
+  PRICING
+  RISK
+  KYC
+  PAYMENT
+  TRADE
+}
 
 model User {
-  id String @id @default(uuid())
-  email String @unique
-  role UserRole @default(USER)
-  status UserStatus @default(ACTIVE)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  profile UserProfile?
+  id               String            @id @default(uuid())
+  email            String            @unique
+  role             UserRole          @default(USER)
+  status           UserStatus        @default(ACTIVE)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  profile          UserProfile?
   kycVerifications KycVerification[]
-  trustScore TrustScore?
-  riskEvents RiskEvent[]
-  bans Ban[]
-  wallet Wallet?
-  orders Order[]
-  tickets SupportTicket[]
-  auditLogs AuditLog[] @relation("AuditActor")
+  trustScore       TrustScore?
+  riskEvents       RiskEvent[]
+  bans             Ban[]
+  wallet           Wallet?
+  orders           Order[]
+  tickets          SupportTicket[]
+  auditLogs        AuditLog[]        @relation("AuditActor")
 }
+
 model UserProfile {
-  id String @id @default(uuid())
-  userId String @unique
+  id          String  @id @default(uuid())
+  userId      String  @unique
   displayName String?
-  steamId String? @unique
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  steamId     String? @unique
+  user        User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 model KycVerification {
-  id String @id @default(uuid())
-  userId String
-  level Int
-  status KycStatus @default(PENDING)
+  id                String        @id @default(uuid())
+  userId            String
+  level             Int
+  status            KycStatus     @default(PENDING)
   providerReference String?
-  expiresAt DateTime?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id])
-  documents KycDocument[]
-  reviews KycReview[]
+  expiresAt         DateTime?
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+  user              User          @relation(fields: [userId], references: [id])
+  documents         KycDocument[]
+  reviews           KycReview[]
+
   @@index([userId, status])
 }
+
 model KycDocument {
-  id String @id @default(uuid())
+  id             String          @id @default(uuid())
   verificationId String
-  storageKey String
-  documentType String
-  createdAt DateTime @default(now())
-  verification KycVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  storageKey     String
+  documentType   String
+  createdAt      DateTime        @default(now())
+  verification   KycVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
 }
+
 model KycReview {
-  id String @id @default(uuid())
+  id             String          @id @default(uuid())
   verificationId String
-  reviewerId String?
-  decision KycStatus
-  reason String?
-  createdAt DateTime @default(now())
-  verification KycVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
+  reviewerId     String?
+  decision       KycStatus
+  reason         String?
+  createdAt      DateTime        @default(now())
+  verification   KycVerification @relation(fields: [verificationId], references: [id], onDelete: Cascade)
 }
+
 model TrustScore {
-  id String @id @default(uuid())
-  userId String @unique
-  score Int
-  factors Json
+  id         String   @id @default(uuid())
+  userId     String   @unique
+  score      Int
+  factors    Json
   assessedAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
+
 model RiskEvent {
-  id String @id @default(uuid())
-  userId String
-  type RiskEventType
-  severity Int
-  metadata Json?
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id])
+  id        String        @id @default(uuid())
+  userId    String
+  type      RiskEventType
+  severity  Int
+  metadata  Json?
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id])
+
   @@index([userId, createdAt])
 }
+
 model Ban {
-  id String @id @default(uuid())
-  userId String
-  status UserStatus
-  reason String
-  evidence Json?
-  actorId String?
+  id        String     @id @default(uuid())
+  userId    String
+  status    UserStatus
+  reason    String
+  evidence  Json?
+  actorId   String?
   expiresAt DateTime?
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id])
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id])
 }
 
 model Skin {
-  id String @id @default(uuid())
-  externalKey String @unique
-  name String
-  weapon String?
-  createdAt DateTime @default(now())
-  variants SkinVariant[]
+  id          String        @id @default(uuid())
+  externalKey String        @unique
+  name        String
+  weapon      String?
+  createdAt   DateTime      @default(now())
+  variants    SkinVariant[]
 }
+
 model SkinVariant {
-  id String @id @default(uuid())
-  skinId String
-  marketIdentifier String @unique
-  exterior String?
-  rarity String?
-  imageUrl String?
-  skin Skin @relation(fields: [skinId], references: [id], onDelete: Cascade)
-  marketSnapshots MarketSnapshot[]
-  marketPrices MarketPrice[]
+  id                   String                @id @default(uuid())
+  skinId               String
+  marketIdentifier     String                @unique
+  exterior             String?
+  rarity               String?
+  imageUrl             String?
+  skin                 Skin                  @relation(fields: [skinId], references: [id], onDelete: Cascade)
+  marketSnapshots      MarketSnapshot[]
+  marketPrices         MarketPrice[]
   liquidityAssessments LiquidityAssessment[]
-  inventoryItems InventoryItem[]
+  inventoryItems       InventoryItem[]
 }
+
 model MarketSnapshot {
-  id String @id @default(uuid())
+  id            String      @id @default(uuid())
   skinVariantId String
-  provider String
-  price Decimal @db.Decimal(20, 8)
-  currency Currency
-  volume Int?
-  availability Int?
-  observedAt DateTime
-  createdAt DateTime @default(now())
-  skinVariant SkinVariant @relation(fields: [skinVariantId], references: [id])
+  provider      String
+  price         Decimal     @db.Decimal(20, 8)
+  currency      Currency
+  volume        Int?
+  availability  Int?
+  observedAt    DateTime
+  createdAt     DateTime    @default(now())
+  skinVariant   SkinVariant @relation(fields: [skinVariantId], references: [id])
+
   @@index([skinVariantId, observedAt])
 }
+
 model MarketPrice {
-  id String @id @default(uuid())
+  id            String      @id @default(uuid())
   skinVariantId String
-  provider String
-  price Decimal @db.Decimal(20, 8)
-  currency Currency
-  observedAt DateTime
-  skinVariant SkinVariant @relation(fields: [skinVariantId], references: [id])
+  provider      String
+  price         Decimal     @db.Decimal(20, 8)
+  currency      Currency
+  observedAt    DateTime
+  skinVariant   SkinVariant @relation(fields: [skinVariantId], references: [id])
+
   @@unique([skinVariantId, provider])
 }
+
 model LiquidityAssessment {
-  id String @id @default(uuid())
+  id            String      @id @default(uuid())
   skinVariantId String
-  score Int
-  band String
-  inputs Json
+  score         Int
+  band          String
+  inputs        Json
   ruleVersionId String
-  assessedAt DateTime @default(now())
-  skinVariant SkinVariant @relation(fields: [skinVariantId], references: [id])
+  assessedAt    DateTime    @default(now())
+  skinVariant   SkinVariant @relation(fields: [skinVariantId], references: [id])
+
   @@index([skinVariantId, assessedAt])
 }
 
 model PricingRule {
-  id String @id @default(uuid())
-  key String @unique
-  scope ConfigScope @default(PRICING)
+  id          String               @id @default(uuid())
+  key         String               @unique
+  scope       ConfigScope          @default(PRICING)
   description String
-  versions PricingRuleVersion[]
+  versions    PricingRuleVersion[]
 }
+
 model PricingRuleVersion {
-  id String @id @default(uuid())
+  id            String            @id @default(uuid())
   pricingRuleId String
-  version Int
+  version       Int
   configuration Json
   effectiveFrom DateTime
-  effectiveTo DateTime?
-  createdById String?
-  createdAt DateTime @default(now())
-  pricingRule PricingRule @relation(fields: [pricingRuleId], references: [id], onDelete: Cascade)
-  snapshots PricingSnapshot[]
+  effectiveTo   DateTime?
+  createdById   String?
+  createdAt     DateTime          @default(now())
+  pricingRule   PricingRule       @relation(fields: [pricingRuleId], references: [id], onDelete: Cascade)
+  snapshots     PricingSnapshot[]
+
   @@unique([pricingRuleId, version])
   @@index([pricingRuleId, effectiveFrom])
 }
+
 model PricingSnapshot {
-  id String @id @default(uuid())
-  ruleVersionId String
-  operationType OperationType
-  input Json
-  output Json
-  marketPrice Decimal? @db.Decimal(20, 8)
+  id             String             @id @default(uuid())
+  ruleVersionId  String
+  operationType  OperationType
+  input          Json
+  output         Json
+  marketPrice    Decimal?           @db.Decimal(20, 8)
   marketCurrency Currency?
-  exchangeRate Decimal? @db.Decimal(20, 8)
-  finalPrice Decimal @db.Decimal(20, 8)
-  finalCurrency Currency
-  createdAt DateTime @default(now())
-  ruleVersion PricingRuleVersion @relation(fields: [ruleVersionId], references: [id])
-  orders Order[]
+  exchangeRate   Decimal?           @db.Decimal(20, 8)
+  finalPrice     Decimal            @db.Decimal(20, 8)
+  finalCurrency  Currency
+  createdAt      DateTime           @default(now())
+  ruleVersion    PricingRuleVersion @relation(fields: [ruleVersionId], references: [id])
+  orders         Order[]
   inventoryItems InventoryItem[]
 }
 
 model Inventory {
-  id String @id @default(uuid())
-  code String @unique
-  items InventoryItem[]
-  createdAt DateTime @default(now())
+  id        String          @id @default(uuid())
+  code      String          @unique
+  items     InventoryItem[]
+  createdAt DateTime        @default(now())
 }
+
 model InventoryItem {
-  id String @id @default(uuid())
-  inventoryId String
-  skinVariantId String
-  origin InventoryOrigin
-  acquisitionCost Decimal @db.Decimal(20, 8)
+  id                  String                 @id @default(uuid())
+  inventoryId         String
+  skinVariantId       String
+  origin              InventoryOrigin
+  acquisitionCost     Decimal                @db.Decimal(20, 8)
   acquisitionCurrency Currency
-  minimumSalePrice Decimal @db.Decimal(20, 8)
-  currentSalePrice Decimal? @db.Decimal(20, 8)
-  status InventoryStatus @default(INCOMING)
-  steamAssetId String? @unique
-  pricingSnapshotId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  inventory Inventory @relation(fields: [inventoryId], references: [id])
-  skinVariant SkinVariant @relation(fields: [skinVariantId], references: [id])
-  pricingSnapshot PricingSnapshot? @relation(fields: [pricingSnapshotId], references: [id])
-  reservations InventoryReservation[]
+  minimumSalePrice    Decimal                @db.Decimal(20, 8)
+  currentSalePrice    Decimal?               @db.Decimal(20, 8)
+  status              InventoryStatus        @default(INCOMING)
+  steamAssetId        String?                @unique
+  pricingSnapshotId   String?
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  inventory           Inventory              @relation(fields: [inventoryId], references: [id])
+  skinVariant         SkinVariant            @relation(fields: [skinVariantId], references: [id])
+  pricingSnapshot     PricingSnapshot?       @relation(fields: [pricingSnapshotId], references: [id])
+  reservations        InventoryReservation[]
+
   @@index([inventoryId, status])
   @@index([skinVariantId, status])
 }
+
 model InventoryReservation {
-  id String @id @default(uuid())
+  id              String            @id @default(uuid())
   inventoryItemId String
-  orderId String?
-  status ReservationStatus @default(ACTIVE)
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id])
+  orderId         String?
+  status          ReservationStatus @default(ACTIVE)
+  expiresAt       DateTime
+  createdAt       DateTime          @default(now())
+  inventoryItem   InventoryItem     @relation(fields: [inventoryItemId], references: [id])
+
   @@index([inventoryItemId, status])
 }
 
 model Wallet {
-  id String @id @default(uuid())
-  userId String @unique
-  currency Currency @default(BRL)
-  createdAt DateTime @default(now())
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-  entries LedgerEntry[]
-  holds WalletHold[]
+  id        String        @id @default(uuid())
+  userId    String        @unique
+  currency  Currency      @default(BRL)
+  createdAt DateTime      @default(now())
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  entries   LedgerEntry[]
+  holds     WalletHold[]
 }
+
 model LedgerEntry {
-  id String @id @default(uuid())
-  walletId String
-  type LedgerEntryType
-  amount Decimal @db.Decimal(20, 8)
-  currency Currency
-  idempotencyKey String @unique
-  referenceType String
-  referenceId String
-  metadata Json?
-  createdAt DateTime @default(now())
-  wallet Wallet @relation(fields: [walletId], references: [id])
+  id                       String              @id @default(uuid())
+  walletId                 String
+  type                     LedgerEntryType
+  amount                   Decimal             @db.Decimal(20, 8)
+  currency                 Currency
+  idempotencyKey           String              @unique
+  referenceType            String
+  referenceId              String
+  metadata                 Json?
+  createdAt                DateTime            @default(now())
+  wallet                   Wallet              @relation(fields: [walletId], references: [id])
   ledgerIdempotencyResults IdempotencyRecord[] @relation("LedgerIdempotencyResult")
+
   @@index([walletId, createdAt])
 }
+
 model WalletHold {
-  id String @id @default(uuid())
-  walletId String
-  amount Decimal @db.Decimal(20, 8)
-  currency Currency
-  status ReservationStatus @default(ACTIVE)
-  idempotencyKey String @unique
-  expiresAt DateTime?
-  createdAt DateTime @default(now())
-  wallet Wallet @relation(fields: [walletId], references: [id])
+  id             String            @id @default(uuid())
+  walletId       String
+  amount         Decimal           @db.Decimal(20, 8)
+  currency       Currency
+  status         ReservationStatus @default(ACTIVE)
+  idempotencyKey String            @unique
+  expiresAt      DateTime?
+  createdAt      DateTime          @default(now())
+  wallet         Wallet            @relation(fields: [walletId], references: [id])
+
   @@index([walletId, status])
 }
 
 model Order {
-  id String @id @default(uuid())
-  userId String
-  status OrderStatus @default(PAYMENT_PENDING)
-  operationType OperationType
-  currency Currency
-  total Decimal @db.Decimal(20, 8)
+  id                String          @id @default(uuid())
+  userId            String
+  status            OrderStatus     @default(PAYMENT_PENDING)
+  operationType     OperationType
+  currency          Currency
+  total             Decimal         @db.Decimal(20, 8)
   pricingSnapshotId String
-  exchangeRate Decimal? @db.Decimal(20, 8)
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id])
-  pricingSnapshot PricingSnapshot @relation(fields: [pricingSnapshotId], references: [id])
-  items OrderItem[]
-  payments Payment[]
-  purchase Purchase?
-  sale Sale?
-  upgrade Upgrade?
-  downgrade Downgrade?
+  exchangeRate      Decimal?        @db.Decimal(20, 8)
+  idempotencyKey    String          @unique
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+  user              User            @relation(fields: [userId], references: [id])
+  pricingSnapshot   PricingSnapshot @relation(fields: [pricingSnapshotId], references: [id])
+  items             OrderItem[]
+  payments          Payment[]
+  purchase          Purchase?
+  sale              Sale?
+  upgrade           Upgrade?
+  downgrade         Downgrade?
+
   @@index([userId, status])
 }
+
 model Purchase {
-  id String @id @default(uuid())
-  orderId String @unique
+  id                String  @id @default(uuid())
+  orderId           String  @unique
   supplierReference String?
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order             Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
+
 model Sale {
-  id String @id @default(uuid())
-  orderId String @unique
+  id              String @id @default(uuid())
+  orderId         String @unique
   inventoryItemId String
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  order           Order  @relation(fields: [orderId], references: [id], onDelete: Cascade)
 }
+
 model Upgrade {
-  id String @id @default(uuid())
-  orderId String @unique
-  fee Decimal @db.Decimal(20, 8)
+  id       String        @id @default(uuid())
+  orderId  String        @unique
+  fee      Decimal       @db.Decimal(20, 8)
   currency Currency
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  items UpgradeItem[]
+  order    Order         @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items    UpgradeItem[]
 }
+
 model UpgradeItem {
-  id String @id @default(uuid())
-  upgradeId String
+  id              String  @id @default(uuid())
+  upgradeId       String
   inventoryItemId String?
-  direction String
-  appraisedValue Decimal @db.Decimal(20, 8)
-  upgrade Upgrade @relation(fields: [upgradeId], references: [id], onDelete: Cascade)
+  direction       String
+  appraisedValue  Decimal @db.Decimal(20, 8)
+  upgrade         Upgrade @relation(fields: [upgradeId], references: [id], onDelete: Cascade)
 }
+
 model Downgrade {
-  id String @id @default(uuid())
-  orderId String @unique
-  fee Decimal @db.Decimal(20, 8)
+  id       String          @id @default(uuid())
+  orderId  String          @unique
+  fee      Decimal         @db.Decimal(20, 8)
   currency Currency
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
-  items DowngradeItem[]
+  order    Order           @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  items    DowngradeItem[]
 }
+
 model DowngradeItem {
-  id String @id @default(uuid())
-  downgradeId String
+  id              String    @id @default(uuid())
+  downgradeId     String
   inventoryItemId String?
-  direction String
-  appraisedValue Decimal @db.Decimal(20, 8)
-  downgrade Downgrade @relation(fields: [downgradeId], references: [id], onDelete: Cascade)
+  direction       String
+  appraisedValue  Decimal   @db.Decimal(20, 8)
+  downgrade       Downgrade @relation(fields: [downgradeId], references: [id], onDelete: Cascade)
 }
+
 model OrderItem {
-  id String @id @default(uuid())
-  orderId String
+  id              String  @id @default(uuid())
+  orderId         String
   inventoryItemId String?
-  skinVariantId String
-  quantity Int @default(1)
-  unitPrice Decimal @db.Decimal(20, 8)
-  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  skinVariantId   String
+  quantity        Int     @default(1)
+  unitPrice       Decimal @db.Decimal(20, 8)
+  order           Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+
   @@index([orderId])
 }
+
 model Payment {
-  id String @id @default(uuid())
-  orderId String
-  provider String
+  id                String         @id @default(uuid())
+  orderId           String
+  provider          String
   providerReference String
-  status PaymentStatus @default(PENDING)
-  amount Decimal @db.Decimal(20, 8)
-  currency Currency
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  order Order @relation(fields: [orderId], references: [id])
-  events PaymentEvent[]
-  refunds Refund[]
+  status            PaymentStatus  @default(PENDING)
+  amount            Decimal        @db.Decimal(20, 8)
+  currency          Currency
+  idempotencyKey    String         @unique
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  order             Order          @relation(fields: [orderId], references: [id])
+  events            PaymentEvent[]
+  refunds           Refund[]
+
   @@unique([provider, providerReference])
 }
+
 model PaymentEvent {
-  id String @id @default(uuid())
-  paymentId String
-  providerEventId String @unique
-  payload Json
-  verifiedAt DateTime?
-  createdAt DateTime @default(now())
-  payment Payment @relation(fields: [paymentId], references: [id], onDelete: Cascade)
+  id              String    @id @default(uuid())
+  paymentId       String
+  providerEventId String    @unique
+  payload         Json
+  verifiedAt      DateTime?
+  createdAt       DateTime  @default(now())
+  payment         Payment   @relation(fields: [paymentId], references: [id], onDelete: Cascade)
 }
+
 model Refund {
-  id String @id @default(uuid())
-  paymentId String
-  amount Decimal @db.Decimal(20, 8)
-  currency Currency
-  status PaymentStatus
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  payment Payment @relation(fields: [paymentId], references: [id])
+  id             String        @id @default(uuid())
+  paymentId      String
+  amount         Decimal       @db.Decimal(20, 8)
+  currency       Currency
+  status         PaymentStatus
+  idempotencyKey String        @unique
+  createdAt      DateTime      @default(now())
+  payment        Payment       @relation(fields: [paymentId], references: [id])
 }
 
 model Trade {
-  id String @id @default(uuid())
-  steamTradeId String? @unique
-  status TradeStatus @default(CREATED)
-  sourceUserId String?
+  id                String           @id @default(uuid())
+  steamTradeId      String?          @unique
+  status            TradeStatus      @default(CREATED)
+  sourceUserId      String?
   destinationUserId String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  items TradeItem[]
-  events TradeEvent[]
-  protection TradeProtection?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
+  items             TradeItem[]
+  events            TradeEvent[]
+  protection        TradeProtection?
 }
+
 model TradeItem {
-  id String @id @default(uuid())
-  tradeId String
+  id              String  @id @default(uuid())
+  tradeId         String
   inventoryItemId String?
-  steamAssetId String
-  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  steamAssetId    String
+  trade           Trade   @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+
   @@unique([tradeId, steamAssetId])
 }
+
 model TradeEvent {
-  id String @id @default(uuid())
-  tradeId String
-  status TradeStatus
-  payload Json?
-  occurredAt DateTime @default(now())
-  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  id         String      @id @default(uuid())
+  tradeId    String
+  status     TradeStatus
+  payload    Json?
+  occurredAt DateTime    @default(now())
+  trade      Trade       @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 }
+
 model TradeProtection {
-  id String @id @default(uuid())
-  tradeId String @unique
-  status ProtectionStatus @default(PENDING)
-  releaseAt DateTime?
+  id         String           @id @default(uuid())
+  tradeId    String           @unique
+  status     ProtectionStatus @default(PENDING)
+  releaseAt  DateTime?
   releasedAt DateTime?
-  reason String?
-  trade Trade @relation(fields: [tradeId], references: [id], onDelete: Cascade)
+  reason     String?
+  trade      Trade            @relation(fields: [tradeId], references: [id], onDelete: Cascade)
 }
 
 model SupportTicket {
-  id String @id @default(uuid())
-  userId String
-  status SupportStatus @default(OPEN)
-  category SupportCategory
-  subject String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  user User @relation(fields: [userId], references: [id])
-  messages SupportMessage[]
+  id        String           @id @default(uuid())
+  userId    String
+  status    SupportStatus    @default(OPEN)
+  category  SupportCategory
+  subject   String
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+  user      User             @relation(fields: [userId], references: [id])
+  messages  SupportMessage[]
 }
+
 model SupportMessage {
-  id String @id @default(uuid())
-  ticketId String
-  authorId String
-  body String
-  createdAt DateTime @default(now())
-  ticket SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  id        String        @id @default(uuid())
+  ticketId  String
+  authorId  String
+  body      String
+  createdAt DateTime      @default(now())
+  ticket    SupportTicket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
 }
+
 model AuditLog {
-  id String @id @default(uuid())
-  actorId String?
-  action String
+  id         String   @id @default(uuid())
+  actorId    String?
+  action     String
   entityType String
-  entityId String
-  before Json?
-  after Json?
-  requestId String?
-  ipAddress String?
-  metadata Json?
-  createdAt DateTime @default(now())
-  actor User? @relation("AuditActor", fields: [actorId], references: [id])
+  entityId   String
+  before     Json?
+  after      Json?
+  requestId  String?
+  ipAddress  String?
+  metadata   Json?
+  createdAt  DateTime @default(now())
+  actor      User?    @relation("AuditActor", fields: [actorId], references: [id])
+
   @@index([entityType, entityId])
   @@index([actorId, createdAt])
 }
 
-enum IdempotencyStatus { PENDING COMPLETED FAILED }
-enum CommercialOperationType { BUY SELL UPGRADE DOWNGRADE }
-enum CommercialOperationStatus { CREATED REVIEW BLOCKED RESERVED TRADE_PENDING COMPLETED CANCELLED }
-enum SettlementStatus { PENDING READY COMPLETED FAILED UNDER_REVIEW }
+enum IdempotencyStatus {
+  PENDING
+  COMPLETED
+  FAILED
+}
+
+enum CommercialOperationType {
+  BUY
+  SELL
+  UPGRADE
+  DOWNGRADE
+}
+
+enum CommercialOperationStatus {
+  CREATED
+  REVIEW
+  BLOCKED
+  RESERVED
+  TRADE_PENDING
+  COMPLETED
+  CANCELLED
+}
+
+enum SettlementStatus {
+  PENDING
+  READY
+  COMPLETED
+  FAILED
+  UNDER_REVIEW
+}
 
 model IdempotencyRecord {
-  id String @id @default(uuid())
-  scope String
-  key String
-  entityId String?
-  ledgerEntryId String? @unique
-  ledgerEntry LedgerEntry? @relation("LedgerIdempotencyResult", fields: [ledgerEntryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
-  status IdempotencyStatus @default(PENDING)
-  metadata Json?
-  createdAt DateTime @default(now())
-  expiresAt DateTime?
+  id            String            @id @default(uuid())
+  scope         String
+  key           String
+  entityId      String?
+  ledgerEntryId String?           @unique
+  ledgerEntry   LedgerEntry?      @relation("LedgerIdempotencyResult", fields: [ledgerEntryId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  status        IdempotencyStatus @default(PENDING)
+  metadata      Json?
+  createdAt     DateTime          @default(now())
+  expiresAt     DateTime?
+
   @@unique([scope, key])
   @@index([createdAt])
 }
 
 model CommercialOperation {
-  id String @id @default(uuid())
-  userId String
-  type CommercialOperationType
-  status CommercialOperationStatus @default(CREATED)
+  id                String                    @id @default(uuid())
+  userId            String
+  type              CommercialOperationType
+  status            CommercialOperationStatus @default(CREATED)
   pricingSnapshotId String
-  riskAssessmentId String?
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  riskAssessmentId  String?
+  idempotencyKey    String                    @unique
+  createdAt         DateTime                  @default(now())
+  updatedAt         DateTime                  @updatedAt
+
   @@index([userId, status])
   @@index([pricingSnapshotId])
 }
 
 model Settlement {
-  id String @id @default(uuid())
-  userId String
-  operationId String @unique
-  status SettlementStatus @default(PENDING)
-  idempotencyKey String @unique
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id             String           @id @default(uuid())
+  userId         String
+  operationId    String           @unique
+  status         SettlementStatus @default(PENDING)
+  idempotencyKey String           @unique
+  createdAt      DateTime         @default(now())
+  updatedAt      DateTime         @updatedAt
+
   @@index([userId, status])
 }

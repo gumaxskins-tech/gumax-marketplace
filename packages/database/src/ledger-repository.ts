@@ -100,17 +100,20 @@ const toPrismaEntry = (entry: LedgerDomainEntry): LedgerPrismaCreate => ({
   createdAt: entry.createdAt,
 });
 
-export const toDomainLedgerEntry = (entry: LedgerPrismaEntry): LedgerDomainEntry => ({
-  id: entry.id,
-  walletId: entry.walletId,
-  type: toLedgerType(entry.type),
-  amount: money(entry.amount.toString(), toCurrency(entry.currency)),
-  referenceType: entry.referenceType,
-  referenceId: entry.referenceId,
-  idempotencyKey: entry.idempotencyKey,
-  createdAt: entry.createdAt,
-  metadata: toMetadata(entry.metadata),
-});
+export const toDomainLedgerEntry = (entry: LedgerPrismaEntry): LedgerDomainEntry => {
+  const metadata = toMetadata(entry.metadata);
+  return {
+    id: entry.id,
+    walletId: entry.walletId,
+    type: toLedgerType(entry.type),
+    amount: money(entry.amount.toString(), toCurrency(entry.currency)),
+    referenceType: entry.referenceType,
+    referenceId: entry.referenceId,
+    idempotencyKey: entry.idempotencyKey,
+    createdAt: entry.createdAt,
+    ...(metadata ? { metadata } : {}),
+  };
+};
 
 const chronologicalOrder = [{ createdAt: "asc" }, { id: "asc" }] as const;
 

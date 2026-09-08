@@ -6,11 +6,11 @@ Financial PostgreSQL integration tests use only `GUMAX_TEST_DATABASE_URL`. They 
 
 ## Current toolchain status
 
-The repository is an npm workspaces monorepo (`npm@10.9.2` is declared in the root manifest). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07 this workspace had no committed lockfile, npm executable (including the standard Windows installation paths), installed `node_modules`, local Prisma CLI, generated client, PostgreSQL runtime, Docker, or designated test URL. Consequently this document defines the reproducible contract but does not claim a validated PostgreSQL environment. The available `pnpm` fallback must not be used: it would change the package-manager/lockfile contract.
+The repository is an npm workspaces monorepo (`npm@10.9.2` remains declared in the root manifest). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07, a root `package-lock.json` was materialized and `npm ci` completed using external npm `11.17.0` with Node `24.19.0`; this differs from, but does not modify, the declared package-manager version. Prisma CLI `6.2.1`, generated `@prisma/client` `6.2.1`, `prisma validate`, and the workspace typecheck are now confirmed. The available `pnpm` fallback must not be used: it would change the npm lockfile contract. PostgreSQL, Docker, and a designated test URL remain unavailable.
 
 ## Prerequisites
 
-1. Install a supported Node.js distribution that includes npm `10.9.2` (or otherwise restore that exact npm executable), then restore or commit the repository's lockfile before installation. The missing executable and lockfile currently prevent a lockfile-safe `npm ci` installation.
+1. Prefer npm `10.9.2`, which is declared by the repository. The currently validated external npm is `11.17.0`; do not alter `packageManager` until the project deliberately approves that version change. Use the committed root lockfile and `npm ci` for reproducible installs.
 2. Start a disposable PostgreSQL service. Docker is the preferred future local/CI strategy; a dedicated local PostgreSQL instance is acceptable. Do not use an external database unless it is explicitly provisioned only for these tests.
 3. Set `GUMAX_TEST_DATABASE_URL` to that disposable database URL. Keep it out of source control.
 

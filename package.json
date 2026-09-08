@@ -3,7 +3,10 @@
   "version": "2.0.0",
   "private": true,
   "packageManager": "npm@10.9.2",
-  "workspaces": ["apps/*", "packages/*"],
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "scripts": {
     "dev": "npm run dev --workspaces --if-present",
     "build": "npm run build --workspaces --if-present",
@@ -17,6 +20,7 @@
     "db:validate": "npm run prisma:validate"
   },
   "devDependencies": {
+    "@types/node": "24.13.3",
     "typescript": "5.7.3"
   }
 }
