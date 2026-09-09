@@ -46,7 +46,7 @@ if ([string]::IsNullOrEmpty($env:GUMAX_TEST_DATABASE_URL)) {
 node --test packages/database/test/postgres-capture.integration.test.ts
 ```
 
-The test constructs a real `PrismaClient` only in the test harness, injects it into `PrismaCaptureTransactionManager`, and verifies the claim → append → complete → Hold capture flow. It uses no `DATABASE_URL` fallback. Deliberate rollback and concurrent same-key tests remain separate work.
+The test constructs a real `PrismaClient` only in the test harness, injects it into `PrismaCaptureTransactionManager`, and verifies the claim → append → complete → Hold capture flow. It uses no `DATABASE_URL` fallback. The first PostgreSQL execution reached cleanup, where the database correctly rejected deletion of a Ledger idempotency record with `P0001` (`Ledger idempotency records cannot be deleted`). The harness now uses UUID-scoped fixtures and intentionally retains all resulting financial artifacts; resetting or recreating the disposable database belongs to the environment lifecycle, never test cleanup. Deliberate rollback and concurrent same-key tests remain separate work.
 
 ## Cleanup and scope
 

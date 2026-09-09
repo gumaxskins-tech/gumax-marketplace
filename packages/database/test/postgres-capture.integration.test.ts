@@ -113,11 +113,8 @@ test("POSTGRESQL INTEGRATION: capture resources commit on one real transaction",
     assert.equal(await prisma.ledgerEntry.count({ where: { idempotencyKey: ledgerKey } }), 1);
     assert.equal(await prisma.idempotencyRecord.count({ where: { scope: "LEDGER", key: ledgerKey } }), 1);
   } finally {
-    await prisma.idempotencyRecord.deleteMany({ where: { scope: "LEDGER", key: ledgerKey } });
-    await prisma.ledgerEntry.deleteMany({ where: { id: entryId } });
-    await prisma.walletHold.deleteMany({ where: { id: holdId } });
-    await prisma.wallet.deleteMany({ where: { id: walletId } });
-    await prisma.user.deleteMany({ where: { id: userId } });
+    // Ledger claims and entries are immutable financial records. UUID-scoped
+    // fixtures intentionally remain in the disposable integration database.
     await prisma.$disconnect();
   }
 });
