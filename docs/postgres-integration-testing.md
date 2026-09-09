@@ -35,6 +35,19 @@ node --test packages/database/test/integration/capture-transaction-postgres.test
 
 The explicit assignment to `DATABASE_URL` is only for Prisma CLI, whose schema datasource requires that name; it is performed only after the `GUMAX_TEST_DATABASE_URL` gate succeeds. The future integration harness itself must read `GUMAX_TEST_DATABASE_URL` directly and reject an unset value rather than using `DATABASE_URL`.
 
+## Capture transaction smoke
+
+Run the real PostgreSQL smoke separately; it is intentionally excluded from the ordinary unit-test suite:
+
+```powershell
+if ([string]::IsNullOrEmpty($env:GUMAX_TEST_DATABASE_URL)) {
+  throw "GUMAX_TEST_DATABASE_URL is required for PostgreSQL integration tests"
+}
+node --test packages/database/test/postgres-capture.integration.test.ts
+```
+
+The test constructs a real `PrismaClient` only in the test harness, injects it into `PrismaCaptureTransactionManager`, and verifies the claim → append → complete → Hold capture flow. It uses no `DATABASE_URL` fallback. Deliberate rollback and concurrent same-key tests remain separate work.
+
 ## Cleanup and scope
 
 Prefer a uniquely named disposable database per local/CI run and drop it after testing. If a shared test service is used, the harness may remove only records created with its own unique test IDs. No test may reset an unverified target. The first capture smoke validates migrations, a real Prisma client, and one real transaction; rollback, incomplete-claim failure, and same-key concurrency remain separate tests.
