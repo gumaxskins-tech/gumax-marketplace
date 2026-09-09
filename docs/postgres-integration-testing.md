@@ -6,7 +6,9 @@ Financial PostgreSQL integration tests use only `GUMAX_TEST_DATABASE_URL`. They 
 
 ## Current toolchain status
 
-The repository is an npm workspaces monorepo (`npm@10.9.2` remains declared in the root manifest). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07, a root `package-lock.json` was materialized and `npm ci` completed using external npm `11.17.0` with Node `24.19.0`; this differs from, but does not modify, the declared package-manager version. Prisma CLI `6.2.1`, generated `@prisma/client` `6.2.1`, `prisma validate`, and the workspace typecheck are now confirmed. The available `pnpm` fallback must not be used: it would change the npm lockfile contract. PostgreSQL, Docker, and a designated test URL remain unavailable.
+The repository is an npm workspaces monorepo (`npm@10.9.2` remains declared in the root manifest). `@gumax/database` declares `@prisma/client` `6.2.1` and `prisma` `6.2.1`. On 2026-09-07, a root `package-lock.json` was materialized and `npm ci` completed using external npm `11.17.0` with Node `24.19.0`; this differs from, but does not modify, the declared package-manager version. Prisma CLI `6.2.1`, generated `@prisma/client` `6.2.1`, `prisma validate`, and the workspace typecheck are now confirmed. The available `pnpm` fallback must not be used: it would change the npm lockfile contract.
+
+The first real `migrate deploy` attempt against the disposable PostgreSQL target failed safely with PostgreSQL `42P01` because the first historical migration was incremental and `IdempotencyRecord` did not yet exist in an empty database. `20260905000000_initial_baseline` now creates the schema represented by `da2020b^` (with only equivalent Prisma 6.2.1 enum syntax normalization), before the ledger-idempotency and Hold incrementals. A fresh-database migration-chain revalidation remains pending.
 
 ## Prerequisites
 
