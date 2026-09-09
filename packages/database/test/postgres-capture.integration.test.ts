@@ -118,3 +118,101 @@ test("POSTGRESQL INTEGRATION: capture resources commit on one real transaction",
     await prisma.$disconnect();
   }
 });
+
+test("POSTGRESQL INTEGRATION: capture resources rollback together on deliberate failure", async () => {
+  const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  const suffix = randomUUID();
+  const userId = `rollback-user-${suffix}`;
+  const walletId = `rollback-wallet-${suffix}`;
+  const holdId = `rollback-hold-${suffix}`;
+  const entryId = `rollback-entry-${suffix}`;
+  const ledgerKey = `rollback-ledger-${suffix}`;
+  let transactionCalls = 0;
+  const delegateAccesses: string[] = [];
+  const rollbackProbe = new Error("ROLLBACK_PROBE");
+  const retryAbort = new Error("ROLLBACK_RETRY_PROBE");
+
+  const runner: PrismaCaptureTransactionRunner = {
+    async $transaction(operation) {
+      transactionCalls += 1;
+      return prisma.$transaction(async (realTx) => {
+        const tx = new Proxy(realTx, {
+          get(target, property, receiver) {
+            if (property === "walletHold" || property === "ledgerEntry" || property === "idempotencyRecord") {
+              delegateAccesses.push(String(property));
+            }
+            return Reflect.get(target, property, receiver);
+          },
+        });
+        return operation(tx as PrismaCaptureTransactionClient);
+      });
+    },
+  };
+  const manager = new PrismaCaptureTransactionManager(runner);
+
+  try {
+    await prisma.user.create({ data: { id: userId, email: `${userId}@example.test` } });
+    await prisma.wallet.create({ data: { id: walletId, userId, currency: "BRL" } });
+    await prisma.walletHold.create({
+      data: {
+        id: holdId,
+        walletId,
+        amount: "9.87654321",
+        currency: "BRL",
+        status: "ACTIVE",
+        idempotencyKey: `rollback-hold-key-${suffix}`,
+      },
+    });
+
+    await assert.rejects(
+      manager.run(async (tx) => {
+        const hold = await tx.holdRepository.getById(holdId);
+        assert.ok(hold);
+        assert.equal(hold.status, "ACTIVE");
+
+        const claim = await tx.ledgerIdempotencyStore.claim(ledgerKey);
+        assert.equal(claim.kind, "CLAIMED");
+        const entry = {
+          id: entryId,
+          walletId,
+          type: "DEBIT" as const,
+          amount: money("9.87654321", "BRL"),
+          referenceType: "HOLD",
+          referenceId: holdId,
+          idempotencyKey: ledgerKey,
+          createdAt: new Date("2026-09-09T00:00:00.000Z"),
+        };
+        await tx.ledgerRepository.append(entry);
+        await tx.ledgerIdempotencyStore.complete(claim, entry);
+        await tx.holdRepository.save({ ...hold, status: "CAPTURED" });
+        throw rollbackProbe;
+      }),
+      (received) => received === rollbackProbe,
+    );
+
+    assert.equal(transactionCalls, 1);
+    assert.deepEqual(new Set(delegateAccesses), new Set(["walletHold", "ledgerEntry", "idempotencyRecord"]));
+
+    const [persistedHold, ledgerEntryCount, claimCount] = await Promise.all([
+      prisma.walletHold.findUnique({ where: { id: holdId } }),
+      prisma.ledgerEntry.count({ where: { idempotencyKey: ledgerKey } }),
+      prisma.idempotencyRecord.count({ where: { scope: "LEDGER", key: ledgerKey } }),
+    ]);
+    assert.equal(persistedHold?.status, "ACTIVE");
+    assert.equal(ledgerEntryCount, 0);
+    assert.equal(claimCount, 0);
+
+    await assert.rejects(
+      manager.run(async (tx) => {
+        const retryClaim = await tx.ledgerIdempotencyStore.claim(ledgerKey);
+        assert.equal(retryClaim.kind, "CLAIMED");
+        throw retryAbort;
+      }),
+      (received) => received === retryAbort,
+    );
+  } finally {
+    // UUID-scoped fixtures remain in the disposable database. No immutable
+    // ledger entry or idempotency record can be deleted by this harness.
+    await prisma.$disconnect();
+  }
+});
