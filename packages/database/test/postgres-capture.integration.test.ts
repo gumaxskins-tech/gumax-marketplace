@@ -17,6 +17,20 @@ if (!databaseUrl) {
   );
 }
 
+const createBarrier = (participants: number) => {
+  let arrived = 0;
+  let release!: () => void;
+  const released = new Promise<void>((resolve) => { release = resolve; });
+
+  return {
+    async wait(): Promise<void> {
+      arrived += 1;
+      if (arrived === participants) release();
+      await released;
+    },
+  };
+};
+
 test("POSTGRESQL INTEGRATION: capture resources commit on one real transaction", async () => {
   const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
   const suffix = randomUUID();
@@ -213,6 +227,104 @@ test("POSTGRESQL INTEGRATION: capture resources rollback together on deliberate 
   } finally {
     // UUID-scoped fixtures remain in the disposable database. No immutable
     // ledger entry or idempotency record can be deleted by this harness.
+    await prisma.$disconnect();
+  }
+});
+
+test("POSTGRESQL INTEGRATION: same ledger idempotency key converges under concurrent transactions", async () => {
+  const prisma = new PrismaClient({ datasources: { db: { url: databaseUrl } } });
+  const suffix = randomUUID();
+  const userId = `concurrency-user-${suffix}`;
+  const walletId = `concurrency-wallet-${suffix}`;
+  const sameKey = `concurrency-same-key-${suffix}`;
+  const sameReferenceId = `concurrency-reference-${suffix}`;
+  const sameEntryIds = [`concurrency-entry-a-${suffix}`, `concurrency-entry-b-${suffix}`] as const;
+  const differentKeys = [`concurrency-different-a-${suffix}`, `concurrency-different-b-${suffix}`] as const;
+  let transactionCalls = 0;
+
+  const runner: PrismaCaptureTransactionRunner = {
+    async $transaction(operation) {
+      transactionCalls += 1;
+      return prisma.$transaction((realTx) => operation(realTx as PrismaCaptureTransactionClient));
+    },
+  };
+  const manager = new PrismaCaptureTransactionManager(runner);
+
+  const post = async (
+    key: string,
+    entryId: string,
+    referenceId: string,
+    barrier: ReturnType<typeof createBarrier>,
+  ): Promise<string> => manager.run(async (tx) => {
+    await barrier.wait();
+    const claim = await tx.ledgerIdempotencyStore.claim(key);
+    if (claim.kind === "COMPLETED") return claim.entry.id;
+    assert.equal(claim.kind, "CLAIMED");
+    const entry = {
+      id: entryId,
+      walletId,
+      type: "DEBIT" as const,
+      amount: money("7.00000001", "BRL"),
+      referenceType: "CONCURRENCY_PROBE",
+      referenceId,
+      idempotencyKey: key,
+      createdAt: new Date("2026-09-09T00:00:00.000Z"),
+    };
+    await tx.ledgerRepository.append(entry);
+    return (await tx.ledgerIdempotencyStore.complete(claim, entry)).id;
+  });
+
+  try {
+    await prisma.user.create({ data: { id: userId, email: `${userId}@example.test` } });
+    await prisma.wallet.create({ data: { id: walletId, userId, currency: "BRL" } });
+
+    const sameKeyBarrier = createBarrier(2);
+    const sameKeyResults = await Promise.allSettled([
+      post(sameKey, sameEntryIds[0], sameReferenceId, sameKeyBarrier),
+      post(sameKey, sameEntryIds[1], sameReferenceId, sameKeyBarrier),
+    ]);
+    const sameKeyResultIds = sameKeyResults.map((result) => {
+      if (result.status === "rejected") throw result.reason;
+      return result.value;
+    });
+    assert.equal(transactionCalls, 2);
+    assert.equal(new Set(sameKeyResultIds).size, 1);
+
+    const [sameClaim, sameEntryCount] = await Promise.all([
+      prisma.idempotencyRecord.findUnique({
+        where: { scope_key: { scope: "LEDGER", key: sameKey } },
+        include: { ledgerEntry: true },
+      }),
+      prisma.ledgerEntry.count({ where: { idempotencyKey: sameKey } }),
+    ]);
+    assert.equal(sameClaim?.status, "COMPLETED");
+    assert.ok(sameClaim?.ledgerEntryId);
+    assert.equal(sameEntryCount, 1);
+    assert.equal(sameClaim?.ledgerEntryId, sameKeyResultIds[0]);
+
+    const thirdClaim = await manager.run((tx) => tx.ledgerIdempotencyStore.claim(sameKey));
+    assert.equal(thirdClaim.kind, "COMPLETED");
+    if (thirdClaim.kind === "COMPLETED") {
+      assert.equal(thirdClaim.entry.id, sameClaim?.ledgerEntryId);
+    }
+
+    const differentKeyBarrier = createBarrier(2);
+    const differentKeyResults = await Promise.allSettled([
+      post(differentKeys[0], `concurrency-different-entry-a-${suffix}`, `concurrency-different-reference-a-${suffix}`, differentKeyBarrier),
+      post(differentKeys[1], `concurrency-different-entry-b-${suffix}`, `concurrency-different-reference-b-${suffix}`, differentKeyBarrier),
+    ]);
+    for (const result of differentKeyResults) {
+      if (result.status === "rejected") throw result.reason;
+    }
+    const [differentClaims, differentEntryCount] = await Promise.all([
+      prisma.idempotencyRecord.findMany({ where: { scope: "LEDGER", key: { in: [...differentKeys] } } }),
+      prisma.ledgerEntry.count({ where: { idempotencyKey: { in: [...differentKeys] } } }),
+    ]);
+    assert.equal(differentClaims.length, 2);
+    assert.equal(differentClaims.filter((claim) => claim.status === "COMPLETED" && claim.ledgerEntryId).length, 2);
+    assert.equal(differentEntryCount, 2);
+  } finally {
+    // UUID-scoped financial artifacts are retained in the disposable database.
     await prisma.$disconnect();
   }
 });
